@@ -1,5 +1,5 @@
 #pragma once
-#include "BaseControl.h"
+#include "WindowControl.h"
 
 namespace webinar
 {

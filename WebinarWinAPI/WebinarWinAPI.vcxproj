@@ -152,6 +152,7 @@
     <ClCompile Include="Convert.cpp" />
     <ClCompile Include="CreateRoomWindow.cpp" />
     <ClCompile Include="JoinRoomWindow.cpp" />
+    <ClCompile Include="Reg.cpp" />
     <ClCompile Include="WaveWriter.cpp" />
     <ClCompile Include="RoomWindow.cpp" />
     <ClCompile Include="Label.cpp" />
@@ -159,7 +160,8 @@
     <ClCompile Include="TextBox.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BaseControl.h" />
+    <ClInclude Include="Reg.h" />
+    <ClInclude Include="WindowControl.h" />
     <ClInclude Include="Button.h" />
     <ClInclude Include="Choice.h" />
     <ClInclude Include="Client.h" />

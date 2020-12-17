@@ -1,7 +1,9 @@
 #include <windows.h>
 #include <tchar.h>
 #include <exception>
+
 #include "Choice.h"
+#include "Reg.h"
 
 int WINAPI WinMain(
 	HINSTANCE hInstance,
@@ -11,11 +13,11 @@ int WINAPI WinMain(
 {
 	try
 	{
+		CreateRegistryKey(HKEY_CURRENT_USER, SUB_KEY);
 
-		TCHAR * strWindowClassName = _T("Webinar");
 		MSG msg;
 
-		webinar::Choice ChoiceWindow(_T("RoleChoiceWindow"), hInstance, 100, 100, 380, 300, nCmdShow);
+		webinar::Choice ChoiceWindow(_T("Онлайн-вебинар"), hInstance, 100, 100, 380, 300, nCmdShow);
 
 		BOOL bRet;
 

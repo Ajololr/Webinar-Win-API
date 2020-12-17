@@ -88,9 +88,9 @@ namespace webinar
 			{
 			case WM_CREATE:
 			{
-				controls.push_back(new Label(hWnd, _T("Welcome to Webinar!"), 100, 15, 150, 20, 1));
-				controls.push_back(new Button(hWnd, _T("Create"), 130, 80, 80, 25, 2));
-				controls.push_back(new Button(hWnd, _T("Connect"), 130, 130, 80, 25, 3));
+				controls.push_back(new Label(hWnd, _T("Добро пожаловать  в Онлайн-вебинар!"), 40, 15, 270, 20, 1));
+				controls.push_back(new Button(hWnd, _T("Создать комнату"), 100, 80, 160, 25, 2));
+				controls.push_back(new Button(hWnd, _T("Присоединиться"), 100, 130, 160, 25, 3));
 
 
 				controls[1]->SetEvent(ClickCreate, WM_COMMAND);
@@ -133,7 +133,7 @@ namespace webinar
 	bool ClickCreate(WPARAM wParam, LPARAM lParam)
 	{
 		userRole = TEACHER;
-		webinar::CreateRoomWindow createRoomWindow(L"Create room", hwndChoice, 100, 100, 380, 300, 1);
+		webinar::CreateRoomWindow createRoomWindow(L"Создание комнаты", hwndChoice, 100, 100, 380, 300, 1);
 		ShowWindow((HWND)hwndChoice, SW_HIDE);
 		return true;
 	}
@@ -144,7 +144,7 @@ namespace webinar
 		try
 		{
 			userRole = STUDENT;
-			webinar::JoinRoomWindow joinRoomWindow(L"Join room", hwndChoice, 100, 100, 380, 300, 1);
+			webinar::JoinRoomWindow joinRoomWindow(L"Присоединиться к комнате", hwndChoice, 100, 100, 380, 300, 1);
 			ShowWindow((HWND)hwndChoice, SW_HIDE);
 		}
 		catch (std::exception ex)

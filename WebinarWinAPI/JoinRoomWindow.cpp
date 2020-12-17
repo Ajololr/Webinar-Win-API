@@ -8,6 +8,8 @@
 #include "RoomWindow.h"
 #include "Role.h"
 #include "JoinRoomWindow.h"
+#include "Reg.h"
+#include "Convert.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -79,15 +81,17 @@ namespace webinar
 			{
 			case WM_CREATE:
 			{
-				joinWindowControls.push_back(new Label(hWnd, _T("Join room"), 140, 15, 50, 20, 1));
-				joinWindowControls.push_back(new Label(hWnd, _T("Your name"), 100, 50, 75, 20, 2));
-				joinWindowControls.push_back(new TextBox(hWnd, _T(""), 100, 80, 140, 20, 3));
-				joinWindowControls.push_back(new Label(hWnd, _T("Password"), 100, 110, 75, 20, 4));
-				joinWindowControls.push_back(new TextBox(hWnd, _T(""), 100, 140, 140, 20, 5));
-				joinWindowControls.push_back(new Button(hWnd, _T("Join webinar"), 115, 190, 100, 25, 6));
+				LPCSTR strResult = ReadStringFromRegistry(HKEY_CURRENT_USER, SUB_KEY, KEY_NAME);
+
+				if (!strResult) {
+					strResult = "";
+				}
+				joinWindowControls.push_back(new Label(hWnd, _T("Ваше имя:"), 100, 50, 75, 20, 2));
+				joinWindowControls.push_back(new TextBox(hWnd, &Convert::StrToWStr(strResult)[0], 100, 80, 140, 20, 3));
+				joinWindowControls.push_back(new Button(hWnd, _T("Присоединиться"), 100, 190, 130, 25, 6));
 
 
-				joinWindowControls[5]->SetEvent(ClickJoinRoom, WM_COMMAND);
+				joinWindowControls[2]->SetEvent(ClickJoinRoom, WM_COMMAND);
 
 				return 0;
 			}
@@ -126,15 +130,17 @@ namespace webinar
 	bool ClickJoinRoom(WPARAM wParam, LPARAM lParam)
 	{			
 		userName.resize(20);
-		GetWindowTextA(joinWindowControls[2]->GetHandler(), &userName[0], 11);
+		GetWindowTextA(joinWindowControls[1]->GetHandler(), &userName[0], 11);
 
 		if (!strlen(&userName[0]))
 		{
-			MessageBoxA(NULL, "Enter name", NULL, MB_ICONERROR);
+			MessageBoxA(NULL, "Введите имя", NULL, MB_ICONERROR);
 			return false;
 		}
 
-		webinar::RoomWindow room(L"Student room", hwndJRW, 100, 20, 1335, 660, 1);
+		WriteStringInRegistry(HKEY_CURRENT_USER, SUB_KEY, KEY_NAME, userName.c_str());
+
+		webinar::RoomWindow room(L"Комната студента", hwndJRW, 100, 20, 1335, 660, 1);
 		ShowWindow((HWND)hwndJRW, SW_HIDE);
 
 		return true;

@@ -23,7 +23,7 @@
 #pragma comment(lib, "Ws2_32.lib")
 #pragma comment(lib, "Winmm.lib")
 
-#define FPS		                30
+#define FPS		                10
 #define BUFFER_SIZE             1024
 #define REFTIMES_PER_SEC		500000
 #define REFTIMES_PER_MILLISEC	500
@@ -159,7 +159,7 @@ namespace webinar
 
 	const char* HOST_ADRESS = "192.168.100.4";
 
-	HBITMAP bmp = NULL;
+	HBITMAP hbmp = NULL;
 	HINSTANCE Hrw = NULL;
 
 	std::vector<WindowControl*> formControls;
@@ -274,15 +274,15 @@ namespace webinar
 			case WM_CREATE:
 			{
 				formControls.push_back(new TextBox(hWnd, _T(""), 1024, 0, 300, 576, 11));
-				formControls.push_back(new TextBox(hWnd, _T(""), 1024, 586, 200, 30, 12));
-				formControls.push_back(new Button(hWnd, _T("Send"), 1234, 586, 70, 30, 13));
+				formControls.push_back(new TextBox(hWnd, _T(""), 1024, 586, 170, 30, 12));
+				formControls.push_back(new Button(hWnd, _T("Отправить"), 1204, 586, 100, 30, 13));
 				formControls[2]->SetEvent(ClickSend, WM_COMMAND);
 				if (userRole == TEACHER) {
-					formControls.push_back(new Button(hWnd, _T("Start webinar"), 50, 586, 100, 30, 15));
+					formControls.push_back(new Button(hWnd, _T("Начать"), 50, 586, 100, 30, 15));
 					formControls[3]->SetEvent(ClickStart, WM_COMMAND);
 				}
 				else {
-					formControls.push_back(new Button(hWnd, _T("Сonnect"), 50, 586, 100, 30, 10));
+					formControls.push_back(new Button(hWnd, _T("Подключиться"), 50, 586, 100, 30, 10));
 					formControls[3]->SetEvent(ClickConnect, WM_COMMAND);
 				}
 
@@ -351,9 +351,9 @@ namespace webinar
 		HGDIOBJ oldBitmap;
 
 		hdcMem = CreateCompatibleDC(hdc);
-		oldBitmap = SelectObject(hdcMem, bmp);
+		oldBitmap = SelectObject(hdcMem, hbmp);
 
-		GetObject(bmp, sizeof(bitmap), &bitmap); 
+		GetObject(hbmp, sizeof(bitmap), &bitmap); 
 
 		SetStretchBltMode(hdc, HALFTONE);
 		StretchBlt(hdc, 0, 0, 1024, 576, hdcMem, 0, 0,SCREEN_WIDTH, SCREEN_HEIGHT, SRCCOPY);
@@ -364,6 +364,11 @@ namespace webinar
 	}
 
 	bool ClickStart(WPARAM wParam, LPARAM lParam) {
+		SetWindowTextA(formControls[3]->GetHandler(), "Завершить");
+		if (!isEndOfWebinar) {
+			isEndOfWebinar = true;
+			exit(0);
+		}
 		isEndOfWebinar = false;
 		InitChat();
 		InitVideoSocket();
@@ -373,7 +378,11 @@ namespace webinar
 	}
 
 	bool ClickConnect(WPARAM wParam, LPARAM lParam) {
-		SetWindowTextA(formControls[3]->GetHandler(), "Disconnect");
+		if (!isEndOfWebinar) {
+			exit(0);
+		}
+		isEndOfWebinar = false;
+		SetWindowTextA(formControls[3]->GetHandler(), "Отключиться");
 		ConnectToChat();
 		ConnectToVideo();
 		ConnectToVoice();
@@ -426,7 +435,6 @@ namespace webinar
 		{
 			WSADATA verSoc = { 0 };
 
-			std::cout << "Initialization socket vertion" << std::endl;
 			if (WSAStartup(0x0202, &verSoc))
 			{
 				throw("Can't initialize a socket servion");
@@ -465,8 +473,6 @@ namespace webinar
 
 			InitializeCriticalSection(&critSec);
 
-			std::cout << "Server online, waiting for clients..." << std::endl;
-
 			CreateThread(NULL,NULL,ThreadChatConnectionsListener,NULL,NULL,NULL);
 
 		}
@@ -480,7 +486,7 @@ namespace webinar
 		catch (...)
 		{
 
-			MessageBoxA(NULL, "Undefined chat init exception", NULL, MB_ICONERROR);
+			MessageBoxA(NULL, "Chat init exception. Port might be in use.", NULL, MB_ICONERROR);
 
 			PostQuitMessage(-1);
 		}
@@ -582,21 +588,6 @@ namespace webinar
 
 		struct sockaddr_in 	addrClient = { 0 };
 		addrClient.sin_addr.s_addr = inet_addr(&ip[0]);
-
-		if (INADDR_NONE == addrClient.sin_addr.s_addr)
-		{
-			struct hostent* hostName = gethostbyname(&ip[0]);
-
-			if (!hostName)
-			{
-				closesocket(*Socket);
-				throw(std::exception("Can't get host address"));
-			}
-
-			addrClient.sin_addr = *(struct in_addr*)hostName->h_addr_list[0];
-
-		}
-
 		addrClient.sin_family = AF_INET;
 		addrClient.sin_port =  htons(port);
 
@@ -669,9 +660,9 @@ namespace webinar
 
 
 		HDC hdcMem = CreateCompatibleDC(hScreen);
-		DeleteObject(bmp);
-		bmp = CreateCompatibleBitmap(hScreen, ScreenX, ScreenY);
-		HBITMAP hOld = (HBITMAP)SelectObject(hdcMem, bmp);
+		DeleteObject(hbmp);
+		hbmp = CreateCompatibleBitmap(hScreen, ScreenX, ScreenY);
+		HBITMAP hOld = (HBITMAP)SelectObject(hdcMem, hbmp);
 
 		SetStretchBltMode(hdcMem, HALFTONE);
 
@@ -698,7 +689,7 @@ namespace webinar
 			bmpBuffer = (char*)malloc(4 * SCREEN_WIDTH * SCREEN_HEIGHT);
 		}
 
-		int s = GetDIBits(hdcMem, bmp, 0, SCREEN_HEIGHT, bmpBuffer, (BITMAPINFO*)&bmi, DIB_RGB_COLORS);
+		int s = GetDIBits(hdcMem, hbmp, 0, SCREEN_HEIGHT, bmpBuffer, (BITMAPINFO*)&bmi, DIB_RGB_COLORS);
 
 		ReleaseDC(GetDesktopWindow(), hScreen);
 		DeleteDC(hScreen);
@@ -738,7 +729,7 @@ namespace webinar
 
 	DWORD WINAPI ThreadChatConnectionsListener(LPVOID _param)
 	{
-		bool first = true;
+		bool teacherConnect = true;
 
 		while (servChatSocket != SOCKET_ERROR)
 		{
@@ -756,60 +747,56 @@ namespace webinar
 
 				if (connectingSocketClient == INVALID_SOCKET && servChatSocket != INVALID_SOCKET)
 					throw("Couldn't connect a client");
-				if (servChatSocket == INVALID_SOCKET)
-					continue;
+
+				if (connectedClientsCount > clientSockets.size())
+				{
+					char errorMesage[] = "Server is full";
+					send(connectingSocketClient, errorMesage, sizeof(errorMesage), 0);
+					closesocket(connectingSocketClient);
+				}
 				else
 				{
-					if (connectedClientsCount < clientSockets.size())
-					{
-						EnterCriticalSection(&critSec);
+					EnterCriticalSection(&critSec);
 
-						for (int i = 0; i < clientSockets.size(); i++)
+					for (int i = 0; i < clientSockets.size(); i++)
+					{
+						if (!clientSockets[i].chatSocket)
 						{
-							if (!clientSockets[i].chatSocket)
-							{
-								clientSockets[i].chatSocket = connectingSocketClient;
+							clientSockets[i].chatSocket = connectingSocketClient;
 
-								CreateThread(NULL, NULL, ThreadClientListen, reinterpret_cast<LPVOID>(i), NULL, NULL);
+							CreateThread(NULL, NULL, ThreadClientListen, reinterpret_cast<LPVOID>(i), NULL, NULL);
 
-								if (!first) {
-									SOCKET connectingSocketClient1 = NULL;
-									sockaddr_in clientAddrInfo1 = { 0 };
-									int sizeClientAddrInfo1 = sizeof(clientAddrInfo1);
-									connectingSocketClient1 = accept(videoSocket,
-										reinterpret_cast<sockaddr*>(&clientAddrInfo1),
-										&sizeClientAddrInfo1);
+							if (!teacherConnect) {
+								SOCKET connectingSocketClient1 = NULL;
+								sockaddr_in clientAddrInfo1 = { 0 };
+								int sizeClientAddrInfo1 = sizeof(clientAddrInfo1);
+								connectingSocketClient1 = accept(videoSocket,
+									reinterpret_cast<sockaddr*>(&clientAddrInfo1),
+									&sizeClientAddrInfo1);
 
-									clientSockets[i].videoSocket = connectingSocketClient1;
+								clientSockets[i].videoSocket = connectingSocketClient1;
 
-									SOCKET connectingSocketClient2 = NULL;
-									sockaddr_in clientAddrInfo2 = { 0 };
-									int sizeClientAddrInfo2 = sizeof(clientAddrInfo2);
-									connectingSocketClient2 = accept(voiceSocket,
-										reinterpret_cast<sockaddr*>(&clientAddrInfo2),
-										&sizeClientAddrInfo2);
+								SOCKET connectingSocketClient2 = NULL;
+								sockaddr_in clientAddrInfo2 = { 0 };
+								int sizeClientAddrInfo2 = sizeof(clientAddrInfo2);
+								connectingSocketClient2 = accept(voiceSocket,
+									reinterpret_cast<sockaddr*>(&clientAddrInfo2),
+									&sizeClientAddrInfo2);
 
-									clientSockets[i].voiceSocket = connectingSocketClient2;
-								}
-								else {
-									first = false;
-								}
-
-								break;
+								clientSockets[i].voiceSocket = connectingSocketClient2;
 							}
+							else {
+								teacherConnect = false;
+							}
+
+							break;
 						}
-						connectedClientsCount++;
-						LeaveCriticalSection(&critSec);
 					}
-					else
-					{
-						char errorMesage[] = "Server is full";
-						send(connectingSocketClient, errorMesage, sizeof(errorMesage), 0);
-						closesocket(connectingSocketClient);
-						throw "Can't connect a client";
-					}
+					connectedClientsCount++;
+					LeaveCriticalSection(&critSec);
 				}
 			}
+			
 			catch (std::exception& ex)
 			{
 				MessageBoxA(NULL, ex.what(), NULL, MB_ICONERROR);
@@ -863,7 +850,7 @@ namespace webinar
 		sockaddr_in sender_addr;
 		int address_size = sizeof(struct sockaddr_in);
 
-		while (true) {
+		while (!isEndOfWebinar) {
 			nbytes = recv(videoSocket, videoRecvBuff + (4 * SCREEN_WIDTH * SCREEN_HEIGHT - bytesToRead), bytesToRead, 0);
 				
 			if (nbytes == SOCKET_ERROR) {
@@ -872,7 +859,8 @@ namespace webinar
 			}
 			bytesToRead = bytesToRead - nbytes;
 			if (bytesToRead == 0) {
-				bmp = CreateBitmap(SCREEN_WIDTH, SCREEN_HEIGHT, 1, 32, videoRecvBuff);
+				DeleteObject(hbmp);
+				hbmp = CreateBitmap(SCREEN_WIDTH, SCREEN_HEIGHT, 1, 32, videoRecvBuff);
 				InvalidateRect((HWND)Hrw, NULL, false);
 				bytesToRead = 4 * SCREEN_WIDTH * SCREEN_HEIGHT;
 			}
@@ -886,9 +874,9 @@ namespace webinar
 		while (true)
 		{
 			HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-			RecordAudioStream(L"capture.wav");
+			RecordAudioStream(L"temp_send.wav");
 			FILE* temp;
-			fopen_s(&temp, "capture.wav", "rb");
+			fopen_s(&temp, "temp_send.wav", "rb");
 			int len = fread(&voiceBuf, 1, 6400000, temp);
 
 			for (int i = 1; i < clientSockets.size(); i++)
@@ -927,11 +915,11 @@ namespace webinar
 				break;
 			}
 			FILE* temp;
-			errno_t err = fopen_s(&temp, "Capture2.wav", "wb");
+			errno_t err = fopen_s(&temp, "temp_recv.wav", "wb");
 			if (!err) {
 				int len = fwrite(&voiceBuf, 1, nbytes, temp);
 				fclose(temp);
-				PlaySound(L"Capture2.wav", NULL, SND_ASYNC | SND_NODEFAULT);
+				PlaySound(L"temp_recv.wav", NULL, SND_ASYNC | SND_NODEFAULT);
 			}
 		}
 		return 0;
@@ -959,7 +947,7 @@ namespace webinar
 					{
 						clientSockets[index].name = messageBuffer;
 						clientSockets[index].name.resize(strlen(&messageBuffer[0]));
-						char connectMsg[] = "Connected: ";
+						char connectMsg[] = "Подключился: ";
 
 						EnterCriticalSection(&critSec);
 
@@ -992,7 +980,7 @@ namespace webinar
 		closesocket(clientSockets[index].chatSocket);
 		clientSockets[index].chatSocket = NULL;
 
-		Brodcast("Disconnected: " + clientSockets[index].name);
+		Brodcast("Отключилсся: " + clientSockets[index].name);
 
 		clientSockets[index].name.resize(0);
 

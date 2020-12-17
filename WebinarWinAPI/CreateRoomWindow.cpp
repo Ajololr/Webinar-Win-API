@@ -2,12 +2,15 @@
 #include <memory>
 #include <Winsock.h>
 #include <string>
+
 #include "Label.h"
 #include "TextBox.h"
 #include "Button.h"
 #include "CreateRoomWindow.h"
 #include "RoomWindow.h"
 #include "Role.h"
+#include "Reg.h"
+#include "Convert.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -39,7 +42,7 @@ namespace webinar
 			throw std::exception("Window Class Initial Error");
 		}
 
-		WindowControl::_hwndWindow = CreateWindow(_wndClass.lpszClassName, // имя класса
+		WindowControl::_hwndWindow = CreateWindow(_wndClass.lpszClassName,
 			strWindowClassName,
 			DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU,
 			x, y, width, heigth,
@@ -68,10 +71,10 @@ namespace webinar
 		WSACleanup();
 	}
 
-	LRESULT CreateRoomWindow::WndProc(HWND hWnd, // дескриптор окна
-		UINT uMsg, // сообщение, посылаемое ОС
-		WPARAM wParam, // параметры
-		LPARAM lParam) // сообщений, для последующего обращения
+	LRESULT CreateRoomWindow::WndProc(HWND hWnd, 
+		UINT uMsg, 
+		WPARAM wParam, 
+		LPARAM lParam) 
 	{
 		try
 		{
@@ -79,15 +82,16 @@ namespace webinar
 			{
 			case WM_CREATE:
 			{
-				createWindowControls.push_back(new Label(hWnd, _T("Create room"), 140, 15, 50, 20, 1));
-				createWindowControls.push_back(new Label(hWnd, _T("Name"), 100, 50, 75, 20, 2));
-				createWindowControls.push_back(new TextBox(hWnd, _T(""), 100, 80, 140, 20, 3));
-				createWindowControls.push_back(new Label(hWnd, _T("Password"), 100, 110, 75, 20, 4));
-				createWindowControls.push_back(new TextBox(hWnd, _T(""), 100, 140, 140, 20, 5));
-				createWindowControls.push_back(new Button(hWnd, _T("Start webinar"), 115, 190, 100, 25, 6));
+				LPCSTR strResult = ReadStringFromRegistry(HKEY_CURRENT_USER, SUB_KEY, KEY_NAME);
 
+				if (!strResult) {
+					strResult = "";
+				}
+				createWindowControls.push_back(new Label(hWnd, _T("Ваше имя:"), 100, 50, 75, 20, 2));
+				createWindowControls.push_back(new TextBox(hWnd, &Convert::StrToWStr(strResult)[0], 100, 80, 140, 20, 3));
+				createWindowControls.push_back(new Button(hWnd, _T("Создать комнату"), 100, 190, 130, 25, 6));
 
-				createWindowControls[5]->SetEvent(ClickCreateRoom, WM_COMMAND);
+				createWindowControls[2]->SetEvent(ClickCreateRoom, WM_COMMAND);
 
 				return 0;
 			}
@@ -126,15 +130,16 @@ namespace webinar
 	bool ClickCreateRoom(WPARAM wParam, LPARAM lParam)
 	{
 		userName.resize(20);
-		GetWindowTextA(createWindowControls[2]->GetHandler(), &userName[0], 11);
+		GetWindowTextA(createWindowControls[1]->GetHandler(), &userName[0], 11);
 
 		if (!strlen(&userName[0]))
 		{
-			MessageBoxA(NULL, "Enter name", NULL, MB_ICONERROR);
+			MessageBoxA(NULL, "Введите имя", NULL, MB_ICONERROR);
 			return false;
 		}
+		WriteStringInRegistry(HKEY_CURRENT_USER, SUB_KEY, KEY_NAME, userName.c_str());
 
-		webinar::RoomWindow room(L"Teacher room", hwndCRW, 100, 20, 1335, 660, 1);
+		webinar::RoomWindow room(L"Вебинар", hwndCRW, 100, 20, 1335, 660, 1);
 		ShowWindow((HWND)hwndCRW, SW_HIDE);
 		return true;
 	}

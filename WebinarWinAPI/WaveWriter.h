@@ -1,7 +1,7 @@
 #include "Stdafx.h"
 
-#ifndef MFWAVEWRITER_H
-#define MFWAVEWRITER_H
+#ifndef WAVEWRITER_H
+#define WAVEWRITER_H
 
 const UINT32 WAVE_HEAD_LEN		= 44;
 const UINT32 WAVE_HEAD_EXT_LEN	= 80;

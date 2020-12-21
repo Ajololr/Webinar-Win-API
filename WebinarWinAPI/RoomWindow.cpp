@@ -25,8 +25,8 @@
 
 #define FPS		                10
 #define BUFFER_SIZE             1024
-#define REFTIMES_PER_SEC		500000
-#define REFTIMES_PER_MILLISEC	500
+#define REFTIMES_PER_SEC		300000
+#define REFTIMES_PER_MILLISEC	300
 #define MAX_LOOP_BEFORE_STOP	20
 
 const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
@@ -156,8 +156,9 @@ namespace webinar
 	const int SCREENSHOT_MS = 1000 / FPS;
 
 	bool isEndOfWebinar = true;
+	bool isVideoEnabled = true;
 
-	const char* HOST_ADRESS = "192.168.100.4";
+	const char* HOST_ADRESS = "172.20.10.4";
 
 	HBITMAP hbmp = NULL;
 	HINSTANCE Hrw = NULL;
@@ -214,6 +215,7 @@ namespace webinar
 	bool ClickSend(WPARAM, LPARAM);
 	bool ClickConnect(WPARAM, LPARAM);
 	bool ClickStart(WPARAM, LPARAM);
+	bool ClickSwitchVideo(WPARAM, LPARAM);
 
 	RoomWindow::RoomWindow(TCHAR * strWindowClassName, HINSTANCE hInstance, int x, int y, int width, int heigth, int iShowWindow)
 	{
@@ -284,6 +286,11 @@ namespace webinar
 				else {
 					formControls.push_back(new Button(hWnd, _T("Подключиться"), 50, 586, 100, 30, 10));
 					formControls[3]->SetEvent(ClickConnect, WM_COMMAND);
+				}
+
+				if (userRole == TEACHER) {
+					formControls.push_back(new Button(hWnd, _T("Видео выкл"), 400, 586, 150, 30, 10));
+					formControls[4]->SetEvent(ClickSwitchVideo, WM_COMMAND);
 				}
 
 				return 0;
@@ -386,6 +393,17 @@ namespace webinar
 		ConnectToChat();
 		ConnectToVideo();
 		ConnectToVoice();
+		return true;
+	}
+
+	bool ClickSwitchVideo(WPARAM wParam, LPARAM lParam) {
+		isVideoEnabled = !isVideoEnabled;
+		if (isVideoEnabled) {
+			SetWindowTextA(formControls[4]->GetHandler(), "Видео выкл");
+		}
+		else {
+			SetWindowTextA(formControls[4]->GetHandler(), "Видео вкл");
+		}
 		return true;
 	}
 
@@ -788,7 +806,6 @@ namespace webinar
 							else {
 								teacherConnect = false;
 							}
-
 							break;
 						}
 					}
@@ -818,26 +835,28 @@ namespace webinar
 	{
 		do
 		{
-			int len = TakeScreenShot();
+			if (isVideoEnabled) {
+				int len = TakeScreenShot();
 
-			InvalidateRect((HWND)Hrw, NULL, false);
+				InvalidateRect((HWND)Hrw, NULL, false);
 
-			for (int i = 1; i < clientSockets.size(); i++)
-			{
-				if (clientSockets[i].videoSocket && clientSockets[i].videoSocket != SOCKET_ERROR)
+				for (int i = 1; i < clientSockets.size(); i++)
 				{
-					int sizeSent = send(clientSockets[i].videoSocket, (const char*)bmpBuffer, len, 0);
-					int err = WSAGetLastError();
-					
-					if (sizeSent == SOCKET_ERROR)
+					if (clientSockets[i].videoSocket && clientSockets[i].videoSocket != SOCKET_ERROR)
 					{
-						closesocket(clientSockets[i].videoSocket);
-						clientSockets[i].videoSocket = SOCKET_ERROR;
+						int sizeSent = send(clientSockets[i].videoSocket, (const char*)bmpBuffer, len, 0);
+						int err = WSAGetLastError();
+
+						if (sizeSent == SOCKET_ERROR)
+						{
+							closesocket(clientSockets[i].videoSocket);
+							clientSockets[i].videoSocket = SOCKET_ERROR;
+						}
 					}
 				}
-			}
 
-			Sleep(SCREENSHOT_MS);
+				Sleep(SCREENSHOT_MS);
+			}
 		} while (!isEndOfWebinar);
 
 		return 0;
@@ -851,20 +870,21 @@ namespace webinar
 		int address_size = sizeof(struct sockaddr_in);
 
 		while (!isEndOfWebinar) {
-			nbytes = recv(videoSocket, videoRecvBuff + (4 * SCREEN_WIDTH * SCREEN_HEIGHT - bytesToRead), bytesToRead, 0);
-				
-			if (nbytes == SOCKET_ERROR) {
-				closesocket(videoSocket);
-				break;
-			}
-			bytesToRead = bytesToRead - nbytes;
-			if (bytesToRead == 0) {
-				DeleteObject(hbmp);
-				hbmp = CreateBitmap(SCREEN_WIDTH, SCREEN_HEIGHT, 1, 32, videoRecvBuff);
-				InvalidateRect((HWND)Hrw, NULL, false);
-				bytesToRead = 4 * SCREEN_WIDTH * SCREEN_HEIGHT;
-			}
+			if (isVideoEnabled) {
+				nbytes = recv(videoSocket, videoRecvBuff + (4 * SCREEN_WIDTH * SCREEN_HEIGHT - bytesToRead), bytesToRead, 0);
 
+				if (nbytes == SOCKET_ERROR) {
+					closesocket(videoSocket);
+					break;
+				}
+				bytesToRead = bytesToRead - nbytes;
+				if (bytesToRead == 0) {
+					DeleteObject(hbmp);
+					hbmp = CreateBitmap(SCREEN_WIDTH, SCREEN_HEIGHT, 1, 32, videoRecvBuff);
+					InvalidateRect((HWND)Hrw, NULL, false);
+					bytesToRead = 4 * SCREEN_WIDTH * SCREEN_HEIGHT;
+				}
+			}
 		}
 		return 0;
 	}
